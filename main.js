@@ -1,368 +1,583 @@
-const startCameraBtn = document.getElementById("startCamera");
-const captureBtn = document.getElementById("captureBtn");
-const stopCameraBtn = document.getElementById("stopCamera");
-const cameraVideo = document.getElementById("cameraVideo");
-const cameraStatus = document.getElementById("cameraStatus");
-const galleryGrid = document.getElementById("galleryGrid");
-const photoCount = document.getElementById("photoCount");
-const previewFrame = document.getElementById("previewFrame");
-const previewList = document.getElementById("previewList");
-const heartFrame = document.getElementById("heartFrame");
-const filterBar = document.getElementById("filterBar");
-const intro = document.getElementById("intro");
-const burstField = document.getElementById("burstField");
-const enterBtn = document.getElementById("enterBtn");
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-const heartField = document.getElementById("heartField");
-const scrollButtons = document.querySelectorAll("[data-scroll]");
+const scoreValue = document.getElementById("scoreValue");
+const bestValue = document.getElementById("bestValue");
+const levelValue = document.getElementById("levelValue");
+const targetValue = document.getElementById("targetValue");
+const progressBar = document.getElementById("progressBar");
+const levelLadder = document.getElementById("levelLadder");
+const overlay = document.getElementById("overlay");
+const overlayTitle = document.getElementById("overlayTitle");
+const overlaySubtitle = document.getElementById("overlaySubtitle");
+const overlayBtn = document.getElementById("overlayBtn");
+const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const restartBtn = document.getElementById("restartBtn");
+const soundToggle = document.getElementById("soundToggle");
+const effectTitle = document.getElementById("effectTitle");
+const effectDesc = document.getElementById("effectDesc");
 
-let stream = null;
-let savedPhotos = 0;
-let currentFilter = "original";
-let introTimer = null;
-let introFinished = false;
-let introBurstInterval = null;
+const LEVELS = [
+  { name: "Bloom", speed: 6, target: 120 },
+  { name: "Pulse", speed: 7, target: 240 },
+  { name: "Surge", speed: 8, target: 380 },
+  { name: "Vortex", speed: 9, target: 540 },
+  { name: "Zenith", speed: 10, target: 720 },
+];
 
-const filterSettings = {
-  original: {
-    css: "none",
-    overlay: null,
-    heartColor: "rgba(255, 155, 185, 0.3)",
-  },
-  rosy: {
-    css: "saturate(1.15) brightness(1.05) contrast(1.05) hue-rotate(-6deg)",
-    overlay: ["rgba(255, 170, 200, 0.35)", "rgba(255, 240, 245, 0.2)"],
-    heartColor: "rgba(255, 120, 160, 0.35)",
-  },
-  blush: {
-    css: "sepia(0.12) saturate(1.25) brightness(1.06)",
-    overlay: ["rgba(255, 200, 210, 0.35)", "rgba(255, 245, 250, 0.2)"],
-    heartColor: "rgba(255, 150, 180, 0.35)",
-  },
-  candy: {
-    css: "saturate(1.35) hue-rotate(8deg) brightness(1.05)",
-    overlay: ["rgba(255, 140, 180, 0.35)", "rgba(255, 230, 240, 0.22)"],
-    heartColor: "rgba(255, 110, 170, 0.35)",
-  },
-  cupid: {
-    css: "contrast(1.1) saturate(1.1) brightness(0.98)",
-    overlay: ["rgba(140, 40, 70, 0.28)", "rgba(255, 200, 215, 0.2)"],
-    heartColor: "rgba(180, 60, 110, 0.35)",
-  },
+const COLORS = {
+  board: "#0a0f16",
+  grid: "rgba(90, 130, 190, 0.12)",
+  snake: "#2ef2ff",
+  head: "#6dffd7",
+  food: "#33f2b1",
+  boost: "#ff7a45",
+  slow: "#6aa7ff",
+  obstacle: "#9a6bff",
 };
 
-function spawnHeart(x, y) {
-  const heart = document.createElement("span");
-  heart.className = "floating-heart";
-  const size = 12 + Math.random() * 18;
-  heart.style.width = `${size}px`;
-  heart.style.height = `${size}px`;
-  heart.style.left = `${x}px`;
-  heart.style.top = `${y}px`;
-  heart.style.animationDuration = `${2.6 + Math.random() * 2}s`;
-  heartField.appendChild(heart);
-  setTimeout(() => heart.remove(), 4200);
+let cols = 24;
+let rows = 36;
+let cell = 18;
+let offsetX = 0;
+let offsetY = 0;
+
+let snake = [];
+let direction = { x: 1, y: 0 };
+let nextDirection = { x: 1, y: 0 };
+let food = null;
+let foodType = "normal";
+let obstacles = new Set();
+let pendingGrowth = 0;
+
+let score = 0;
+let levelIndex = 0;
+let levelTarget = LEVELS[0].target;
+let baseSpeed = LEVELS[0].speed;
+let speedOverride = null;
+let speedSteps = 0;
+
+let running = false;
+let paused = false;
+let lastTime = 0;
+let accumulator = 0;
+
+let touchStart = null;
+let audioEnabled = false;
+let audioCtx = null;
+
+const BEST_KEY = "neon-serpent-best";
+const storedBest = Number(localStorage.getItem(BEST_KEY) || 0);
+let bestScore = storedBest;
+
+function resizeBoard() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const aspect = rect.height / rect.width;
+  if (aspect > 1.5) {
+    cols = 24;
+    rows = 38;
+  } else if (aspect > 1.2) {
+    cols = 24;
+    rows = 34;
+  } else {
+    cols = 26;
+    rows = 30;
+  }
+
+  cell = Math.floor(Math.min(rect.width / cols, rect.height / rows));
+  offsetX = Math.floor((rect.width - cell * cols) / 2);
+  offsetY = Math.floor((rect.height - cell * rows) / 2);
 }
 
-function updatePhotoCount() {
-  photoCount.textContent = `${savedPhotos} saved`;
+function resetGame() {
+  running = false;
+  paused = false;
+  accumulator = 0;
+  lastTime = 0;
+  levelIndex = 0;
+  score = 0;
+  baseSpeed = LEVELS[0].speed;
+  levelTarget = LEVELS[0].target;
+  direction = { x: 1, y: 0 };
+  nextDirection = { x: 1, y: 0 };
+  pendingGrowth = 0;
+  speedOverride = null;
+  speedSteps = 0;
+
+  const startX = Math.floor(cols / 2);
+  const startY = Math.floor(rows / 2);
+  snake = [
+    { x: startX, y: startY },
+    { x: startX - 1, y: startY },
+    { x: startX - 2, y: startY },
+  ];
+
+  obstacles = buildObstacles(levelIndex + 1);
+  cleanupObstacles();
+  spawnFood();
+  updateUI();
+  showOverlay("Swipe to begin", "Collect glowing orbs, dodge arcs, and climb the ladder.");
 }
 
-function drawHeartPath(ctx, x, y, size) {
-  const topCurveHeight = size * 0.3;
+function cleanupObstacles() {
+  const snakeSet = new Set(snake.map((seg) => `${seg.x},${seg.y}`));
+  obstacles = new Set([...obstacles].filter((key) => !snakeSet.has(key)));
+}
+
+function buildObstacles(level) {
+  const set = new Set();
+  if (level >= 2) {
+    const cx = Math.floor(cols / 2);
+    const cy = Math.floor(rows / 2);
+    for (let x = cx - 2; x <= cx + 2; x += 1) {
+      for (let y = cy - 1; y <= cy + 1; y += 1) {
+        set.add(`${x},${y}`);
+      }
+    }
+  }
+  if (level >= 3) {
+    for (let y = 4; y < rows - 4; y += 1) {
+      set.add(`${Math.floor(cols / 3)},${y}`);
+      set.add(`${Math.floor((cols * 2) / 3)},${y}`);
+    }
+  }
+  if (level >= 4) {
+    for (let x = 4; x < cols - 4; x += 1) {
+      set.add(`${x},${Math.floor(rows / 3)}`);
+      set.add(`${x},${Math.floor((rows * 2) / 3)}`);
+    }
+  }
+  if (level >= 5) {
+    for (let x = 2; x <= 4; x += 1) {
+      for (let y = 2; y <= 4; y += 1) {
+        set.add(`${x},${y}`);
+        set.add(`${cols - 1 - x},${rows - 1 - y}`);
+      }
+    }
+  }
+  return set;
+}
+
+function spawnFood() {
+  const free = [];
+  const occupied = new Set([...obstacles, ...snake.map((seg) => `${seg.x},${seg.y}`)]);
+  for (let x = 0; x < cols; x += 1) {
+    for (let y = 0; y < rows; y += 1) {
+      const key = `${x},${y}`;
+      if (!occupied.has(key)) {
+        free.push({ x, y });
+      }
+    }
+  }
+  if (!free.length) {
+    showOverlay("You Win", "The circuit is full. Restart to run again.");
+    running = false;
+    return;
+  }
+  food = free[Math.floor(Math.random() * free.length)];
+  const roll = Math.random();
+  if (roll > 0.9) {
+    foodType = "boost";
+  } else if (roll > 0.8) {
+    foodType = "slow";
+  } else {
+    foodType = "normal";
+  }
+}
+
+function startGame() {
+  running = true;
+  paused = false;
+  hideOverlay();
+  pauseBtn.textContent = "Pause";
+  updateUI();
+}
+
+function pauseGame() {
+  paused = !paused;
+  pauseBtn.textContent = paused ? "Resume" : "Pause";
+  if (paused) {
+    showOverlay("Paused", "Tap resume or press space to continue.", false);
+  } else {
+    hideOverlay();
+  }
+}
+
+function endGame() {
+  running = false;
+  showOverlay("Game Over", "Restart to attempt a new run.");
+  playTone(130, 0.2);
+  updateBest();
+  updateUI();
+}
+
+function showOverlay(title, subtitle, showButton = true) {
+  overlayTitle.textContent = title;
+  overlaySubtitle.textContent = subtitle;
+  overlayBtn.style.display = showButton ? "inline-flex" : "none";
+  overlay.classList.remove("hidden");
+}
+
+function hideOverlay() {
+  overlay.classList.add("hidden");
+}
+
+function updateBest() {
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem(BEST_KEY, String(bestScore));
+  }
+  bestValue.textContent = bestScore;
+}
+
+function updateUI() {
+  scoreValue.textContent = score;
+  bestValue.textContent = bestScore;
+  levelValue.textContent = `${levelIndex + 1}`;
+  targetValue.textContent = levelTarget;
+  const progress = Math.min(score / levelTarget, 1);
+  progressBar.style.width = `${progress * 100}%`;
+
+  const ladderItems = [...levelLadder.querySelectorAll(".ladder-item")];
+  ladderItems.forEach((item) => item.classList.remove("active"));
+  const activeIndex = Math.min(levelIndex, ladderItems.length - 1);
+  if (ladderItems[activeIndex]) {
+    ladderItems[activeIndex].classList.add("active");
+  }
+
+  if (speedOverride) {
+    effectTitle.textContent = speedOverride > baseSpeed ? "Turbo" : "Drift";
+    effectDesc.textContent = speedOverride > baseSpeed
+      ? "Speed boosted for a few moves."
+      : "Time slowed for a few moves.";
+  } else {
+    effectTitle.textContent = "Stable";
+    effectDesc.textContent = "No active effects. Keep collecting orbs.";
+  }
+}
+
+function applyFoodEffect() {
+  if (foodType === "boost") {
+    score += 25;
+    pendingGrowth += 2;
+    speedOverride = baseSpeed + 2;
+    speedSteps = 12;
+    playTone(540, 0.12);
+  } else if (foodType === "slow") {
+    score += 8;
+    pendingGrowth += 1;
+    speedOverride = Math.max(3, baseSpeed - 2);
+    speedSteps = 10;
+    playTone(320, 0.14);
+  } else {
+    score += 12;
+    pendingGrowth += 1;
+    playTone(460, 0.1);
+  }
+}
+
+function getSpeed() {
+  return speedOverride || baseSpeed;
+}
+
+function checkLevelUp() {
+  if (score >= levelTarget) {
+    levelIndex += 1;
+    const baseLevel = LEVELS[LEVELS.length - 1];
+    if (levelIndex < LEVELS.length) {
+      baseSpeed = LEVELS[levelIndex].speed;
+      levelTarget = LEVELS[levelIndex].target;
+    } else {
+      const extra = levelIndex - LEVELS.length + 1;
+      baseSpeed = Math.min(13, baseLevel.speed + extra * 0.6);
+      levelTarget = baseLevel.target + extra * 220;
+    }
+    obstacles = buildObstacles(Math.min(levelIndex + 1, 5));
+    cleanupObstacles();
+    spawnFood();
+    playTone(720, 0.18);
+    showOverlay(`Level ${levelIndex + 1}`, "The arena shifts. Stay sharp.", false);
+    setTimeout(() => {
+      if (running && !paused) {
+        hideOverlay();
+      }
+    }, 700);
+  }
+}
+
+function isOpposite(a, b) {
+  return a.x === -b.x && a.y === -b.y;
+}
+
+function setDirection(x, y) {
+  const proposed = { x, y };
+  if (isOpposite(proposed, direction)) {
+    return;
+  }
+  nextDirection = proposed;
+  if (!running) {
+    startGame();
+  }
+}
+
+function step() {
+  direction = nextDirection;
+  const head = snake[0];
+  const newHead = { x: head.x + direction.x, y: head.y + direction.y };
+
+  if (newHead.x < 0 || newHead.y < 0 || newHead.x >= cols || newHead.y >= rows) {
+    endGame();
+    return;
+  }
+
+  const headKey = `${newHead.x},${newHead.y}`;
+  if (obstacles.has(headKey)) {
+    endGame();
+    return;
+  }
+
+  if (snake.some((seg) => seg.x === newHead.x && seg.y === newHead.y)) {
+    endGame();
+    return;
+  }
+
+  snake.unshift(newHead);
+
+  if (food && newHead.x === food.x && newHead.y === food.y) {
+    applyFoodEffect();
+    spawnFood();
+    checkLevelUp();
+  } else if (pendingGrowth > 0) {
+    pendingGrowth -= 1;
+  } else {
+    snake.pop();
+  }
+
+  if (speedSteps > 0) {
+    speedSteps -= 1;
+    if (speedSteps === 0) {
+      speedOverride = null;
+    }
+  }
+
+  updateUI();
+}
+
+function drawGrid() {
+  ctx.fillStyle = COLORS.board;
+  ctx.fillRect(offsetX, offsetY, cols * cell, rows * cell);
+  ctx.strokeStyle = COLORS.grid;
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= cols; x += 2) {
+    ctx.beginPath();
+    ctx.moveTo(offsetX + x * cell, offsetY);
+    ctx.lineTo(offsetX + x * cell, offsetY + rows * cell);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= rows; y += 2) {
+    ctx.beginPath();
+    ctx.moveTo(offsetX, offsetY + y * cell);
+    ctx.lineTo(offsetX + cols * cell, offsetY + y * cell);
+    ctx.stroke();
+  }
+}
+
+function roundedRect(x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
-  ctx.moveTo(x + size / 2, y + size);
-  ctx.bezierCurveTo(
-    x + size / 2,
-    y + size - topCurveHeight,
-    x,
-    y + size * 0.6,
-    x,
-    y + size * 0.35
-  );
-  ctx.bezierCurveTo(x, y + size * 0.1, x + size * 0.25, y, x + size / 2, y + size * 0.25);
-  ctx.bezierCurveTo(
-    x + size * 0.75,
-    y,
-    x + size,
-    y + size * 0.1,
-    x + size,
-    y + size * 0.35
-  );
-  ctx.bezierCurveTo(
-    x + size,
-    y + size * 0.6,
-    x + size / 2,
-    y + size - topCurveHeight,
-    x + size / 2,
-    y + size
-  );
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
 
-function launchBurst(count = 36) {
-  if (!burstField) return;
-  burstField.innerHTML = "";
-  for (let i = 0; i < count; i += 1) {
-    const heart = document.createElement("span");
-    heart.className = "burst-heart";
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 160 + Math.random() * 220;
-    const x = Math.cos(angle) * distance;
-    const y = Math.sin(angle) * distance;
-    const scale = 0.6 + Math.random() * 1.1;
-    heart.style.setProperty("--x", `${x}px`);
-    heart.style.setProperty("--y", `${y}px`);
-    heart.style.setProperty("--s", scale.toFixed(2));
-    heart.style.setProperty("--d", `${1.6 + Math.random() * 1.2}s`);
-    burstField.appendChild(heart);
-    setTimeout(() => heart.remove(), 2600);
-  }
-}
-
-function finishIntro() {
-  if (!intro || introFinished) return;
-  introFinished = true;
-  intro.classList.add("out");
-  document.body.classList.remove("intro-active");
-  if (introBurstInterval) {
-    clearInterval(introBurstInterval);
-    introBurstInterval = null;
-  }
-  setTimeout(() => intro.remove(), 1000);
-}
-
-function startIntro() {
-  if (!intro) return;
-  document.body.classList.add("intro-active");
-  launchBurst();
-  if (introBurstInterval) clearInterval(introBurstInterval);
-  introBurstInterval = setInterval(() => {
-    if (introFinished) return;
-    launchBurst(22 + Math.floor(Math.random() * 10));
-  }, 900);
-  if (introTimer) clearTimeout(introTimer);
-  introTimer = setTimeout(() => finishIntro(), 6800);
-}
-
-function applyFilterToVideo() {
-  const filter = filterSettings[currentFilter];
-  cameraVideo.style.filter = filter?.css || "none";
-  if (heartFrame) {
-    heartFrame.dataset.filter = currentFilter;
-  }
-}
-
-function drawBokehHearts(ctx, size, color) {
-  const count = 6;
-  for (let i = 0; i < count; i += 1) {
-    const heartSize = size * (0.05 + Math.random() * 0.05);
-    const x = Math.random() * (size - heartSize);
-    const y = Math.random() * (size - heartSize);
-    ctx.save();
-    ctx.globalAlpha = 0.2 + Math.random() * 0.2;
-    ctx.fillStyle = color;
-    drawHeartPath(ctx, x, y, heartSize);
+function drawObstacles() {
+  ctx.fillStyle = COLORS.obstacle;
+  obstacles.forEach((key) => {
+    const [x, y] = key.split(",").map(Number);
+    const px = offsetX + x * cell + cell * 0.12;
+    const py = offsetY + y * cell + cell * 0.12;
+    const size = cell * 0.76;
+    roundedRect(px, py, size, size, cell * 0.2);
     ctx.fill();
-    ctx.restore();
-  }
+  });
 }
 
-function applyFilterOverlay(ctx, size) {
-  const filter = filterSettings[currentFilter];
-  if (!filter?.overlay) return;
-  const [light, dark] = filter.overlay;
-  const gradient = ctx.createRadialGradient(size * 0.3, size * 0.25, size * 0.2, size * 0.6, size * 0.6, size);
-  gradient.addColorStop(0, light);
-  gradient.addColorStop(1, dark);
+function drawFood() {
+  if (!food) return;
+  let color = COLORS.food;
+  if (foodType === "boost") color = COLORS.boost;
+  if (foodType === "slow") color = COLORS.slow;
+
+  const cx = offsetX + food.x * cell + cell / 2;
+  const cy = offsetY + food.y * cell + cell / 2;
   ctx.save();
-  ctx.globalAlpha = 0.7;
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, cell * 0.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, cell * 0.35, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
-  drawBokehHearts(ctx, size, filter.heartColor);
 }
 
-async function startCamera() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    cameraStatus.textContent = "Camera access is not supported in this browser.";
-    return;
-  }
-  if (stream) return;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
-    cameraVideo.srcObject = stream;
-    await cameraVideo.play();
-    applyFilterToVideo();
-    cameraStatus.textContent = "Camera ready. Center in the heart and capture.";
-    captureBtn.disabled = false;
-    stopCameraBtn.disabled = false;
-  } catch (error) {
-    cameraStatus.textContent = "Camera permission denied or unavailable.";
-  }
-}
-
-function stopCamera() {
-  if (!stream) return;
-  stream.getTracks().forEach((track) => track.stop());
-  stream = null;
-  cameraVideo.srcObject = null;
-  captureBtn.disabled = true;
-  stopCameraBtn.disabled = true;
-  cameraStatus.textContent = "Camera stopped.";
-}
-
-function capturePhoto() {
-  if (!stream || !cameraVideo.videoWidth) {
-    cameraStatus.textContent = "Start the camera before capturing.";
-    return;
-  }
-
-  const canvas = document.getElementById("photoCanvas");
-  const ctx = canvas.getContext("2d");
-  const size = Math.min(cameraVideo.videoWidth, cameraVideo.videoHeight);
-
-  canvas.width = size;
-  canvas.height = size;
-
-  const gradient = ctx.createLinearGradient(0, 0, size, size);
-  gradient.addColorStop(0, "#ffe1ea");
-  gradient.addColorStop(1, "#fff6f0");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-
-  ctx.save();
-  ctx.filter = filterSettings[currentFilter]?.css || "none";
-  drawHeartPath(ctx, 0, 0, size);
-  ctx.clip();
-  ctx.drawImage(
-    cameraVideo,
-    (cameraVideo.videoWidth - size) / 2,
-    (cameraVideo.videoHeight - size) / 2,
-    size,
-    size,
-    0,
-    0,
-    size,
-    size
-  );
-  ctx.restore();
-
-  applyFilterOverlay(ctx, size);
-
-  ctx.save();
-  drawHeartPath(ctx, 0, 0, size);
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-  ctx.lineWidth = size * 0.03;
-  ctx.shadowColor = "rgba(255, 77, 109, 0.45)";
-  ctx.shadowBlur = size * 0.05;
-  ctx.stroke();
-  ctx.restore();
-
-  const dataUrl = canvas.toDataURL("image/png");
-  const shot = document.createElement("div");
-  shot.className = "shot";
-
-  const img = document.createElement("img");
-  img.src = dataUrl;
-  img.alt = "Heart-framed photo";
-
-  const actions = document.createElement("div");
-  actions.className = "shot-actions";
-  const timeStamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-  const stamp = document.createElement("span");
-  stamp.textContent = timeStamp;
-
-  const download = document.createElement("a");
-  download.href = dataUrl;
-  download.download = `valentine-photo-${Date.now()}.png`;
-  download.textContent = "Download";
-
-  actions.append(stamp, download);
-  shot.append(img, actions);
-
-  const placeholder = galleryGrid.querySelector(".gallery-placeholder");
-  if (placeholder) placeholder.remove();
-
-  galleryGrid.prepend(shot);
-  savedPhotos += 1;
-  updatePhotoCount();
-  cameraStatus.textContent = "Photo captured and saved below.";
-}
-
-updatePhotoCount();
-applyFilterToVideo();
-startIntro();
-
-if (intro) {
-  intro.addEventListener("pointerdown", (event) => {
-    if (event.target.closest("#enterBtn")) return;
-    launchBurst();
-  });
-}
-
-if (enterBtn) {
-  enterBtn.addEventListener("click", () => {
-    finishIntro();
-  });
-}
-
-if (previewList && previewFrame) {
-  previewList.addEventListener("click", (event) => {
-    const button = event.target.closest(".preview-btn");
-    if (!button) return;
-    const embed = button.dataset.embed;
-    if (!embed) return;
-    previewFrame.src = embed;
-    previewList.querySelectorAll(".preview-btn").forEach((btn) => {
-      btn.classList.toggle("active", btn === button);
-      btn.setAttribute("aria-pressed", btn === button ? "true" : "false");
-    });
-  });
-}
-
-if (filterBar) {
-  filterBar.addEventListener("click", (event) => {
-    const button = event.target.closest(".filter-btn");
-    if (!button) return;
-    const filterId = button.dataset.filter;
-    if (!filterSettings[filterId]) return;
-    currentFilter = filterId;
-    filterBar.querySelectorAll(".filter-btn").forEach((btn) => {
-      btn.classList.toggle("active", btn === button);
-      btn.setAttribute("aria-pressed", btn === button ? "true" : "false");
-    });
-    applyFilterToVideo();
-  });
-}
-
-scrollButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const target = document.querySelector(button.dataset.scroll);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth" });
+function drawSnake() {
+  snake.forEach((seg, index) => {
+    const px = offsetX + seg.x * cell + cell * 0.1;
+    const py = offsetY + seg.y * cell + cell * 0.1;
+    const size = cell * 0.8;
+    if (index === 0) {
+      ctx.fillStyle = COLORS.head;
+      ctx.shadowColor = COLORS.head;
+      ctx.shadowBlur = 12;
+    } else {
+      ctx.fillStyle = COLORS.snake;
+      ctx.shadowBlur = 0;
     }
+    roundedRect(px, py, size, size, cell * 0.28);
+    ctx.fill();
+  });
+  ctx.shadowBlur = 0;
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  drawObstacles();
+  drawFood();
+  drawSnake();
+}
+
+function loop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  const delta = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  if (running && !paused) {
+    accumulator += delta;
+    const interval = 1 / getSpeed();
+    while (accumulator >= interval) {
+      step();
+      accumulator -= interval;
+    }
+  }
+
+  render();
+  requestAnimationFrame(loop);
+}
+
+function handleKey(event) {
+  const key = event.key.toLowerCase();
+  if (key === "arrowup" || key === "w") setDirection(0, -1);
+  if (key === "arrowdown" || key === "s") setDirection(0, 1);
+  if (key === "arrowleft" || key === "a") setDirection(-1, 0);
+  if (key === "arrowright" || key === "d") setDirection(1, 0);
+  if (key === " ") pauseGame();
+}
+
+function handleTouchStart(event) {
+  const touch = event.touches[0];
+  if (!touch) return;
+  touchStart = { x: touch.clientX, y: touch.clientY };
+}
+
+function handleTouchEnd(event) {
+  if (!touchStart) return;
+  const touch = event.changedTouches[0];
+  if (!touch) return;
+  const dx = touch.clientX - touchStart.x;
+  const dy = touch.clientY - touchStart.y;
+  const threshold = 28;
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+    setDirection(dx > 0 ? 1 : -1, 0);
+  } else if (Math.abs(dy) > threshold) {
+    setDirection(0, dy > 0 ? 1 : -1);
+  }
+  touchStart = null;
+}
+
+function playTone(freq, duration) {
+  if (!audioEnabled) return;
+  if (!audioCtx) audioCtx = new AudioContext();
+  const oscillator = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  oscillator.frequency.value = freq;
+  oscillator.type = "sine";
+  gain.gain.value = 0.08;
+  oscillator.connect(gain).connect(audioCtx.destination);
+  oscillator.start();
+  oscillator.stop(audioCtx.currentTime + duration);
+}
+
+soundToggle.addEventListener("click", () => {
+  audioEnabled = !audioEnabled;
+  soundToggle.textContent = audioEnabled ? "Sound: On" : "Sound: Off";
+  if (audioEnabled && !audioCtx) {
+    audioCtx = new AudioContext();
+  }
+});
+
+startBtn.addEventListener("click", startGame);
+overlayBtn.addEventListener("click", startGame);
+pauseBtn.addEventListener("click", pauseGame);
+restartBtn.addEventListener("click", () => {
+  resetGame();
+  startGame();
+});
+
+document.querySelectorAll(".dpad-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const dir = btn.dataset.dir;
+    if (dir === "up") setDirection(0, -1);
+    if (dir === "down") setDirection(0, 1);
+    if (dir === "left") setDirection(-1, 0);
+    if (dir === "right") setDirection(1, 0);
   });
 });
 
-document.addEventListener("pointerdown", (event) => {
-  spawnHeart(event.clientX, event.clientY);
+canvas.addEventListener("touchstart", handleTouchStart, { passive: true });
+canvas.addEventListener("touchend", handleTouchEnd, { passive: true });
+canvas.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
+
+window.addEventListener("keydown", handleKey);
+window.addEventListener("resize", () => {
+  resizeBoard();
+  resetGame();
 });
 
-setInterval(() => {
-  const x = Math.random() * window.innerWidth;
-  const y = window.innerHeight - 20 - Math.random() * 120;
-  spawnHeart(x, y);
-}, 1200);
-
-startCameraBtn.addEventListener("click", startCamera);
-stopCameraBtn.addEventListener("click", stopCamera);
-captureBtn.addEventListener("click", capturePhoto);
-
-window.addEventListener("beforeunload", () => {
-  stopCamera();
+levelLadder.addEventListener("click", (event) => {
+  const item = event.target.closest(".ladder-item");
+  if (!item) return;
+  const level = Number(item.dataset.level || 1);
+  levelIndex = Math.max(0, level - 1);
+  baseSpeed = LEVELS[levelIndex].speed;
+  levelTarget = LEVELS[levelIndex].target;
+  obstacles = buildObstacles(level);
+  cleanupObstacles();
+  spawnFood();
+  updateUI();
 });
+
+function init() {
+  bestValue.textContent = bestScore;
+  resizeBoard();
+  resetGame();
+  requestAnimationFrame(loop);
+}
+
+init();

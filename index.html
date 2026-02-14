@@ -3,312 +3,128 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Valentine's Day</title>
+    <title>Neon Serpent — Snake Web Arcade</title>
+    <meta name="theme-color" content="#0b0f14" />
     <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    />
   </head>
   <body>
-    <div id="cloudField" aria-hidden="true">
-      <span class="romance-cloud" style="--x: -12%; --y: 10%; --s: 1.2; --d: 48s; --o: 0.7;"></span>
-      <span class="romance-cloud" style="--x: 18%; --y: 22%; --s: 1; --d: 42s; --o: 0.62;"></span>
-      <span class="romance-cloud" style="--x: 48%; --y: 8%; --s: 1.15; --d: 56s; --o: 0.68;"></span>
-      <span class="romance-cloud" style="--x: -15%; --y: 70%; --s: 1.45; --d: 50s; --o: 0.75;"></span>
-      <span class="romance-cloud" style="--x: 35%; --y: 78%; --s: 1.1; --d: 46s; --o: 0.64;"></span>
-      <span class="romance-cloud" style="--x: 70%; --y: 68%; --s: 1.35; --d: 54s; --o: 0.7;"></span>
+    <div class="ambient" aria-hidden="true">
+      <span class="orb orb-1"></span>
+      <span class="orb orb-2"></span>
+      <span class="orb orb-3"></span>
+      <span class="orb orb-4"></span>
+      <span class="orb orb-5"></span>
+      <span class="grid-glow"></span>
     </div>
-    <div id="heartField" aria-hidden="true"></div>
-    <section class="intro" id="intro" aria-label="Welcome screen">
-      <div class="cloud-layer back" aria-hidden="true">
-        <span class="cloud" style="--x: -10%; --y: 18%; --s: 1.1; --d: 42s; --o: 0.75;"></span>
-        <span class="cloud" style="--x: 30%; --y: 12%; --s: 0.9; --d: 36s; --o: 0.65;"></span>
-        <span class="cloud" style="--x: 65%; --y: 22%; --s: 1.2; --d: 44s; --o: 0.7;"></span>
-      </div>
-      <div class="gate" aria-hidden="true">
-        <div class="gate-frame">
-          <div class="gate-glow"></div>
-          <div class="gate-leaf left"></div>
-          <div class="gate-leaf right"></div>
+
+    <div class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Snake Web Arcade</p>
+          <h1>Neon Serpent</h1>
+          <p class="subtitle">Swipe or tap the D-pad to guide the serpent through luminous arenas.</p>
         </div>
-      </div>
-      <div class="cloud-layer front" aria-hidden="true">
-        <span class="cloud" style="--x: -15%; --y: 60%; --s: 1.4; --d: 34s; --o: 0.9;"></span>
-        <span class="cloud" style="--x: 35%; --y: 68%; --s: 1.1; --d: 30s; --o: 0.8;"></span>
-        <span class="cloud" style="--x: 70%; --y: 62%; --s: 1.3; --d: 38s; --o: 0.85;"></span>
-      </div>
-      <div class="arrow-field" aria-hidden="true">
-        <span class="arrow" style="--x: -10%; --y: 30%; --r: -8deg; --d: 7s; --delay: 0.6s;"></span>
-        <span class="arrow" style="--x: 10%; --y: 20%; --r: -12deg; --d: 8s; --delay: 2.2s;"></span>
-        <span class="arrow" style="--x: 0%; --y: 55%; --r: -5deg; --d: 6.5s; --delay: 1.4s;"></span>
-        <span class="arrow" style="--x: -5%; --y: 75%; --r: -3deg; --d: 7.5s; --delay: 3.2s;"></span>
-      </div>
-      <div class="burst-field" id="burstField" aria-hidden="true"></div>
-      <div class="intro-card">
-        <p class="eyebrow">A little magic</p>
-        <h2>Heavenly Hearts</h2>
-        <p class="lead">
-          Watch the celestial burst, then step into the love story.
-        </p>
-        <div class="intro-actions">
-          <button class="btn primary" id="enterBtn" type="button">
-            Enter
-          </button>
-        </div>
-        <p class="tiny">Auto-continues in a few seconds.</p>
-      </div>
-    </section>
-    <main class="page">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Valentine's Day</p>
-          <h1>Love in Full Color</h1>
-          <p class="lead">
-            A cozy space for playlists, snapshots, and little moments that glow.
-          </p>
-          <div class="hero-actions">
-            <button class="btn primary" type="button" data-scroll="#music">
-              Play the mixtape
-            </button>
-            <button class="btn ghost" type="button" data-scroll="#camera">
-              Open the camera
-            </button>
-          </div>
-          <div class="chips">
-            <span class="chip">Spotify playlist</span>
-            <span class="chip">Heart frame camera</span>
-            <span class="chip">Instant gallery</span>
-          </div>
-        </div>
-        <div class="hero-card">
-          <div class="card-top">
-            <span class="badge">Live vibe</span>
-            <span class="pill">Tap to sprinkle hearts</span>
-          </div>
-          <h2>Moments we keep</h2>
-          <p>
-            Press play, capture a photo, and let the evening sparkle with every
-            beat and every smile.
-          </p>
-          <div class="mini-grid">
-            <div>
-              <p class="mini-title">Mood</p>
-              <p class="mini-value">Warm + dreamy</p>
-            </div>
-            <div>
-              <p class="mini-title">Playlist</p>
-              <p class="mini-value">5 love songs</p>
-            </div>
-            <div>
-              <p class="mini-title">Photos</p>
-              <p class="mini-value" id="photoCount">0 saved</p>
-            </div>
-          </div>
+        <div class="top-actions">
+          <button class="btn ghost" id="soundToggle" type="button">Sound: Off</button>
+          <button class="btn primary" id="startBtn" type="button">Start</button>
         </div>
       </header>
 
-      <section class="section music" id="music">
-        <div class="section-head">
-          <p class="eyebrow">Mixtape</p>
-          <h2>Love Songs on Loop</h2>
-          <p class="section-lead">
-            Spotify-powered embeds with quick 30-second previews.
-          </p>
-        </div>
-        <div class="preview-wrap">
-          <div class="preview-card">
-            <div class="preview-head">
-              <h3>30-second preview player</h3>
-              <span class="pill">Spotify</span>
+      <div class="content-grid">
+        <section class="panel game-panel">
+          <div class="stats-row">
+            <div class="stat">
+              <p class="stat-label">Score</p>
+              <p class="stat-value" id="scoreValue">0</p>
             </div>
-            <iframe
-              id="previewFrame"
-              src="https://open.spotify.com/embed/track/1QrRmj0114zpOc1L4kKkwj"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-              title="Spotify preview player"
-            ></iframe>
-            <p class="tiny">
-              Tap a track to load its preview in the player.
-            </p>
+            <div class="stat">
+              <p class="stat-label">Best</p>
+              <p class="stat-value" id="bestValue">0</p>
+            </div>
+            <div class="stat">
+              <p class="stat-label">Level</p>
+              <p class="stat-value" id="levelValue">1</p>
+            </div>
+            <div class="stat">
+              <p class="stat-label">Target</p>
+              <p class="stat-value" id="targetValue">120</p>
+            </div>
           </div>
-          <div class="preview-list" id="previewList">
-            <button class="preview-btn active" type="button" aria-pressed="true" data-embed="https://open.spotify.com/embed/track/1QrRmj0114zpOc1L4kKkwj">
-              <span class="preview-title">Lover</span>
-              <span class="preview-artist">Taylor Swift</span>
-            </button>
-            <button class="preview-btn" type="button" aria-pressed="false" data-embed="https://open.spotify.com/embed/track/0tgVpDi06FyKpA1z0VMD4v">
-              <span class="preview-title">Perfect</span>
-              <span class="preview-artist">Ed Sheeran</span>
-            </button>
-            <button class="preview-btn" type="button" aria-pressed="false" data-embed="https://open.spotify.com/embed/track/45xE7W4p7FmMov9vRABpMC">
-              <span class="preview-title">Love You Like a Love Song</span>
-              <span class="preview-artist">Selena Gomez &amp; The Scene</span>
-            </button>
-            <button class="preview-btn" type="button" aria-pressed="false" data-embed="https://open.spotify.com/embed/track/0hbAmMNYiKYIPezy06m2zv">
-              <span class="preview-title">Let Me Love You</span>
-              <span class="preview-artist">DJ Snake, Justin Bieber</span>
-            </button>
-            <button class="preview-btn" type="button" aria-pressed="false" data-embed="https://open.spotify.com/embed/track/2aaAMYVRoobwm6URP0LQTa">
-              <span class="preview-title">Love Me Like You Do</span>
-              <span class="preview-artist">Ellie Goulding</span>
-            </button>
-          </div>
-        </div>
-        <div class="spotify-grid">
-          <article class="spotify-card">
-            <div class="spotify-meta">
-              <h3>Lover</h3>
-              <p>Taylor Swift</p>
-            </div>
-            <iframe
-              src="https://open.spotify.com/embed/track/1QrRmj0114zpOc1L4kKkwj"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-              title="Lover by Taylor Swift"
-            ></iframe>
-          </article>
-          <article class="spotify-card">
-            <div class="spotify-meta">
-              <h3>Perfect</h3>
-              <p>Ed Sheeran</p>
-            </div>
-            <iframe
-              src="https://open.spotify.com/embed/track/0tgVpDi06FyKpA1z0VMD4v"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-              title="Perfect by Ed Sheeran"
-            ></iframe>
-          </article>
-          <article class="spotify-card">
-            <div class="spotify-meta">
-              <h3>Love You Like a Love Song</h3>
-              <p>Selena Gomez &amp; The Scene</p>
-            </div>
-            <iframe
-              src="https://open.spotify.com/embed/track/45xE7W4p7FmMov9vRABpMC"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-              title="Love You Like a Love Song by Selena Gomez & The Scene"
-            ></iframe>
-          </article>
-          <article class="spotify-card">
-            <div class="spotify-meta">
-              <h3>Let Me Love You</h3>
-              <p>DJ Snake, Justin Bieber</p>
-            </div>
-            <iframe
-              src="https://open.spotify.com/embed/track/0hbAmMNYiKYIPezy06m2zv"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-              title="Let Me Love You by DJ Snake and Justin Bieber"
-            ></iframe>
-          </article>
-          <article class="spotify-card">
-            <div class="spotify-meta">
-              <h3>Love Me Like You Do</h3>
-              <p>Ellie Goulding</p>
-            </div>
-            <iframe
-              src="https://open.spotify.com/embed/track/2aaAMYVRoobwm6URP0LQTa"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-              title="Love Me Like You Do by Ellie Goulding"
-            ></iframe>
-          </article>
-        </div>
-        <p class="tiny">
-          Spotify embeds provide 30-second previews for signed-out listeners.
-          Sign in for full listening.
-        </p>
-      </section>
 
-      <section class="section camera" id="camera">
-        <div class="section-head">
-          <p class="eyebrow">Camera</p>
-          <h2>Heart Frame Snapshots</h2>
-          <p class="section-lead">
-            Open the camera, capture the moment, and save it to the gallery.
-          </p>
-        </div>
-        <div class="camera-grid">
-          <div class="camera-card">
-            <div class="heart-frame" id="heartFrame" data-filter="original">
-              <video
-                id="cameraVideo"
-                autoplay
-                muted
-                playsinline
-                aria-label="Camera preview"
-              ></video>
-              <div class="filter-overlay" aria-hidden="true"></div>
-              <svg
-                class="heart-border"
-                viewBox="0 0 100 90"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path
-                  d="M50 84s-40-25-40-50a22 22 0 0 1 40-12 22 22 0 0 1 40 12c0 25-40 50-40 50z"
-                />
-              </svg>
-            </div>
-            <div class="filter-bar" id="filterBar" role="radiogroup" aria-label="Valentine filters">
-              <button class="filter-btn active" type="button" aria-pressed="true" data-filter="original">Original</button>
-              <button class="filter-btn" type="button" aria-pressed="false" data-filter="rosy">Rosy Glow</button>
-              <button class="filter-btn" type="button" aria-pressed="false" data-filter="blush">Blush</button>
-              <button class="filter-btn" type="button" aria-pressed="false" data-filter="candy">Sweet Candy</button>
-              <button class="filter-btn" type="button" aria-pressed="false" data-filter="cupid">Cupid Night</button>
-            </div>
-            <canvas id="photoCanvas" class="visually-hidden"></canvas>
-            <div class="camera-controls">
-              <button class="btn" id="startCamera" type="button">
-                Start camera
-              </button>
-              <button class="btn primary" id="captureBtn" type="button" disabled>
-                Capture
-              </button>
-              <button class="btn ghost" id="stopCamera" type="button" disabled>
-                Stop
-              </button>
-            </div>
-            <p class="tiny" id="cameraStatus">
-              Grant camera access to capture heart-framed photos.
-            </p>
-          </div>
-          <div class="camera-notes">
-            <div class="note-card">
-              <h3>How it works</h3>
-              <ul>
-                <li>Start the camera and align inside the heart.</li>
-                <li>Capture to save a heart-framed photo instantly.</li>
-                <li>Download favorites from the gallery below.</li>
-              </ul>
-            </div>
-            <div class="note-card accent">
-              <h3>Quick tip</h3>
-              <p>
-                Tap anywhere on the page to sprinkle hearts while music plays.
-              </p>
+          <div class="board-wrap">
+            <canvas id="gameCanvas" width="540" height="860" aria-label="Snake game board"></canvas>
+            <div class="overlay" id="overlay">
+              <div class="overlay-card">
+                <h2 id="overlayTitle">Swipe to begin</h2>
+                <p id="overlaySubtitle">Collect glowing orbs, dodge arcs, and climb the ladder.</p>
+                <button class="btn primary" id="overlayBtn" type="button">Play</button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section class="section gallery" id="gallery">
-        <div class="section-head">
-          <p class="eyebrow">Gallery</p>
-          <h2>Captured Moments</h2>
-          <p class="section-lead">Each snapshot lands here with a soft glow.</p>
-        </div>
-        <div class="gallery-grid" id="galleryGrid">
-          <div class="gallery-placeholder">
-            <p>No photos yet. Capture your first heart-framed moment.</p>
+          <div class="controls">
+            <button class="btn ghost" id="pauseBtn" type="button">Pause</button>
+            <button class="btn ghost" id="restartBtn" type="button">Restart</button>
+            <div class="dpad" aria-label="Direction pad">
+              <button class="dpad-btn" data-dir="up">▲</button>
+              <div class="dpad-row">
+                <button class="dpad-btn" data-dir="left">◄</button>
+                <button class="dpad-btn" data-dir="right">►</button>
+              </div>
+              <button class="dpad-btn" data-dir="down">▼</button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <footer class="footer">
-        <p>Made for sweet moments, soft lights, and unforgettable songs.</p>
-      </footer>
-    </main>
+        <aside class="panel side-panel">
+          <div class="card">
+            <p class="eyebrow">Power Orbs</p>
+            <h3>Boosts & Effects</h3>
+            <div class="chip-row">
+              <span class="chip normal">Pulse Orb +12</span>
+              <span class="chip boost">Turbo Orb +25</span>
+              <span class="chip slow">Drift Orb +8</span>
+            </div>
+            <p class="small">Turbo accelerates for a few moves. Drift slows time to breathe.</p>
+          </div>
+
+          <div class="card">
+            <p class="eyebrow">Level Ladder</p>
+            <h3>Climb The Circuit</h3>
+            <div class="ladder" id="levelLadder">
+              <div class="ladder-item" data-level="1">Bloom</div>
+              <div class="ladder-item" data-level="2">Pulse</div>
+              <div class="ladder-item" data-level="3">Surge</div>
+              <div class="ladder-item" data-level="4">Vortex</div>
+              <div class="ladder-item" data-level="5">Zenith</div>
+            </div>
+            <div class="progress">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <p class="eyebrow">Status</p>
+            <h3 id="effectTitle">Stable</h3>
+            <p class="small" id="effectDesc">No active effects. Keep collecting orbs.</p>
+          </div>
+
+          <div class="card">
+            <p class="eyebrow">Controls</p>
+            <h3>Swipe, Tap, or Keys</h3>
+            <ul class="list">
+              <li>Swipe anywhere on the board for quick turns.</li>
+              <li>Use arrow keys or WASD on desktop.</li>
+              <li>D-pad stays active for one-handed play.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
 
     <script src="main.js"></script>
   </body>

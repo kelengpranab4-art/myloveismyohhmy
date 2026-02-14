@@ -1,17 +1,12 @@
-# My Love Is My Ohh My 💖
+# Neon Serpent — Snake Web Arcade
 
-A romantic Valentine's Day web application featuring a "Heart Frame" camera, love song mixtape, and a gallery of captured moments.
-
-## 🔗 Live Site
-[**Click here to view the live site**](https://kelengpranab4-art.github.io/myloveismyohhmy/)
+A bold, neon-styled Snake game built for the web. Swipe or use the D‑pad/keyboard to guide the serpent, collect power orbs, dodge obstacles, and climb multiple levels.
 
 ## Features
-- **Mixtape**: Spotify-powered love songs.
-- **Heart Camera**: Capture photos with a heart-shaped frame and filters.
-- **Gallery**: Save and download your snapshots.
+- Multi-level progression with escalating obstacles
+- Power orbs: normal, turbo (speed up), drift (slow time)
+- Touch swipe, D‑pad, and keyboard controls
+- Persistent best score in localStorage
 
-## How to use
-1. Allow camera access when prompted.
-2. Center yourself in the heart frame.
-3. Click "Capture" to take a photo.
-4. Download your favorites!
+## Run
+Open `index.html` in your browser.
